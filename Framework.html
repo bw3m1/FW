@@ -21,6 +21,17 @@
         align-items: center;
         gap: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        box-sizing: border-box;
+        z-index: 1000;
+      }
+
+      #nav-bar.hidden {
+        transform: translateY(-100%);
       }
 
       #url-input {
@@ -77,7 +88,8 @@
       }
 
       #iframe-container {
-        height: calc(100% - 44px);
+        margin-top: 60px;
+        height: calc(100vh - 60px);
         position: relative;
       }
 
@@ -446,6 +458,45 @@
                 navigateToUrl();
             }
         });
+
+        let navTimeout;
+        const navbar = document.getElementById('nav-bar');
+        let isNavbarLocked = false;
+
+        function toggleNavbar() {
+            isNavbarLocked = !isNavbarLocked;
+            if (isNavbarLocked) {
+                showNavbar(true);
+            } else {
+                showNavbar();
+            }
+        }
+
+        function showNavbar(lock = false) {
+            navbar.classList.remove('hidden');
+            clearTimeout(navTimeout);
+            if (!lock && !isNavbarLocked) {
+                navTimeout = setTimeout(() => {
+                    navbar.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        document.addEventListener('mousemove', () => {
+            if (!isNavbarLocked) {
+                showNavbar();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'b') {
+                e.preventDefault();
+                toggleNavbar();
+            }
+        });
+
+        // Initialize navbar
+        showNavbar();
     </script>
   </body>
 </html>
