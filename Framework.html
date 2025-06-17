@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>History</title>
     <link rel="icon" type="image/svg" id="favicon" href="icon.svg">
     <style>
@@ -15,31 +16,64 @@
 
       #nav-bar {
         display: flex;
-        padding: 8px;
-        background: #f1f1f1;
+        padding: 8px 16px;
+        background: linear-gradient(to right, #4285f4, #34a853);
         align-items: center;
-        gap: 8px;
+        gap: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
 
       #url-input {
         flex: 1;
-        padding: 8px 12px;
-        border: 1px solid #ddd;
-        border-radius: 20px;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 24px;
         outline: none;
-        font-size: 14px;
+        font-size: 15px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+      }
+
+      #url-input:focus {
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       }
 
       .nav-button {
-        padding: 8px 12px;
+        padding: 10px 16px;
         border: none;
-        background: #ddd;
-        border-radius: 4px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 20px;
         cursor: pointer;
+        color: white;
+        font-weight: bold;
+        transition: all 0.2s ease;
       }
 
       .nav-button:hover {
-        background: #ccc;
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-1px);
+      }
+
+      .nav-button.home {
+        background: rgba(255,255,255,0.3);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        padding: 8px;
+      }
+
+      .home-icon {
+        width: 20px;
+        height: 20px;
+        fill: white;
+      }
+
+      .nav-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
       }
 
       #iframe-container {
@@ -72,6 +106,23 @@
         transform: translate(-50%, -50%);
         display: none;
         z-index: 5;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 20px;
+        border-radius: 10px;
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(66, 133, 244, 0.1);
+        border-top: 3px solid #4285f4;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
 
       #alternate-options {
@@ -85,26 +136,33 @@
         background: white;
         padding: 20px;
         border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       }
 
       #alternate-options button {
-        margin: 5px;
-        padding: 8px 16px;
+        margin: 8px;
+        padding: 10px 20px;
         background: #4285f4;
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 20px;
         cursor: pointer;
+        transition: all 0.2s ease;
       }
 
       #alternate-options button:hover {
         background: #3367d6;
+        transform: translateY(-1px);
       }
     </style>
   </head>
   <body>
     <div id="nav-bar">
+      <button class="nav-button home" id="home-button" title="Home">
+        <svg class="home-icon" viewBox="0 0 24 24">
+          <path d="M12 5.69l5 4.5V18h-2v-6H9v6H7v-7.81l5-4.5M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/>
+        </svg>
+      </button>
       <button class="nav-button" id="back-button" title="Back">←</button>
       <button class="nav-button" id="forward-button" title="Forward">→</button>
       <button class="nav-button" id="refresh-button" title="Refresh">↻</button>
@@ -113,7 +171,7 @@
     </div>
     <div id="iframe-container">
       <div id="error-message"></div>
-      <div id="loading">Loading...</div>
+      <div id="loading"><div class="spinner"></div></div>
       <div id="alternate-options">
         <h3>This site can't be embedded</h3>
         <p>The website you're trying to visit prevents being displayed in frames for security reasons.</p>
@@ -136,9 +194,12 @@
         const alternateOptions = document.getElementById('alternate-options');
         const openNewTabBtn = document.getElementById('open-new-tab');
         const tryAnywayBtn = document.getElementById('try-anyway');
+        const homeButton = document.getElementById('home-button');
         
         // List of domains that typically block iframe embedding
         const blockedDomains = [
+          'youtube.com',
+          'google.com',
           'github.com',
           'chat.deepseek.com',
           'facebook.com',
@@ -146,6 +207,15 @@
           'instagram.com',
           'linkedin.com'
         ];
+        
+        // Customize Google search URL
+        const GOOGLE_SEARCH_URL = 'https://bw3m1.github.io/FW-GGL-/#gsc.tab=0&q=';
+        const HOME_URL = 'home.html'; // Default home page
+        
+        // Set initial page to home
+        if (iframe.src === window.location.href) {
+            iframe.src = HOME_URL;
+        }
         
         // Initialize URL input with current iframe src
         urlInput.value = iframe.src;
@@ -155,18 +225,14 @@
         function formatUrl(url) {
           url = url.trim();
           
-          // Remove any existing protocol
-          url = url.replace(/^https?:\/\//i, '');
+          // Check if it looks like a search query
+          if (!url.includes('.') && !url.startsWith('http')) {
+            return GOOGLE_SEARCH_URL + encodeURIComponent(url);
+          }
           
-          // Add https:// by default
+          // Handle regular URLs
           if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            // Check if it's a domain with a dot or localhost
-            if (url.includes('.') || url.startsWith('localhost')) {
-              url = 'https://' + url;
-            } else {
-              // Probably a search term - use Google search
-              url = 'https://google.com/search?q=' + encodeURIComponent(url);
-            }
+            url = 'https://' + url;
           }
           
           return url;
@@ -266,6 +332,10 @@
           iframe.src = iframe.src;
         });
         
+        homeButton.addEventListener('click', () => {
+          iframe.src = HOME_URL;
+        });
+        
         // Handle iframe events
         iframe.addEventListener('load', function() {
           loadingIndicator.style.display = 'none';
@@ -284,11 +354,97 @@
             // CORS will block access to iframe content from different origins
             urlInput.value = this.src;
           }
+          updateButtonStates();
         });
         
         iframe.addEventListener('error', () => {
           loadingIndicator.style.display = 'none';
           showAlternateOptions(currentUrl);
+        });
+        
+        // Add keyboard shortcuts for navigation
+        document.addEventListener('keydown', (e) => {
+          // Alt + Left Arrow for back
+          if (e.altKey && e.key === 'ArrowLeft') {
+            backButton.click();
+          }
+          // Alt + Right Arrow for forward
+          if (e.altKey && e.key === 'ArrowRight') {
+            forwardButton.click();
+          }
+          // F5 or Ctrl + R for refresh
+          if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+            e.preventDefault();
+            refreshButton.click();
+          }
+          // Alt + Home for default page
+          if (e.altKey && e.key === 'Home') {
+            iframe.src = 'https://en.wikipedia.org';
+          }
+        });
+
+        // Save last visited URLs in session storage
+        let visitedUrls = [];
+        
+        function updateHistory(url) {
+          visitedUrls.push(url);
+          if (visitedUrls.length > 100) visitedUrls.shift();
+          sessionStorage.setItem('visitedUrls', JSON.stringify(visitedUrls));
+        }
+        
+        // Load history from session storage
+        try {
+          visitedUrls = JSON.parse(sessionStorage.getItem('visitedUrls')) || [];
+        } catch (e) {
+          visitedUrls = [];
+        }
+        
+        // Update navigateToUrl function
+        function navigateToUrl() {
+          let url = urlInput.value.trim();
+          if (!url) return;
+          
+          try {
+            url = formatUrl(url);
+            
+            // Check if this is a known blocked domain
+            if (isLikelyBlocked(url)) {
+              showAlternateOptions(url);
+              return;
+            }
+            
+            loadingIndicator.style.display = 'block';
+            errorMessage.style.display = 'none';
+            alternateOptions.style.display = 'none';
+            
+            updateHistory(url);
+            currentUrl = url;
+            iframe.src = url;
+          } catch (e) {
+            showError('Invalid URL format');
+          }
+        }
+        
+        // Add visual feedback for navigation
+        function updateButtonStates() {
+          try {
+            const hasHistory = iframe.contentWindow.history.length > 1;
+            backButton.disabled = !hasHistory;
+            forwardButton.disabled = !hasHistory;
+            
+            backButton.style.opacity = hasHistory ? '1' : '0.5';
+            forwardButton.style.opacity = hasHistory ? '1' : '0.5';
+          } catch (e) {
+            // CORS might prevent access
+          }
+        }
+
+        // Add message listener for home page navigation
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'navigate') {
+                urlInput.value = event.data.url;
+                navigateToUrl();
+            }
         });
     </script>
   </body>

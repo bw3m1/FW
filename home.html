@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Home</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .search-container {
+            margin-top: 100px;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 24px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            outline: none;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .search-box:focus {
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        }
+
+        .quick-links {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+        }
+
+        .quick-link {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .quick-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .history-section {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .history-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <input type="text" class="search-box" placeholder="Search or enter URL" id="search-input">
+    </div>
+
+    <div class="quick-links">
+        <a href="https://mathnotepad.com" class="quick-link">Calc</a>
+        <a href="https://www.wikipedia.org" class="quick-link">wiki</a>
+        <a href="https://bw3m1.github.io/FW-GGL-/#gsc.tab=0" class="quick-link">google</a>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('search-input');
+        const GOOGLE_SEARCH_URL = 'https://bw3m1.github.io/FW-GGL-/#gsc.tab=0&q=';
+
+        // Handle search within framework
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (!query) return;
+
+                let url;
+                if (query.includes('.') || query.startsWith('http')) {
+                    url = query.startsWith('http') ? query : `https://${query}`;
+                } else {
+                    url = GOOGLE_SEARCH_URL + encodeURIComponent(query);
+                }
+
+                // Check if we're in an iframe
+                if (window !== window.parent) {
+                    window.parent.postMessage({ type: 'navigate', url: url }, '*');
+                } else {
+                    window.location.href = url;
+                }
+            }
+        });
+
+        // Update quick links to work in framework
+        document.querySelectorAll('.quick-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const url = e.currentTarget.href;
+                if (window !== window.parent) {
+                    window.parent.postMessage({ type: 'navigate', url: url }, '*');
+                } else {
+                    window.location.href = url;
+                }
+            });
+        });
+
+        // Handle history items
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('history-item')) {
+                e.preventDefault();
+                const url = e.target.href;
+                if (window !== window.parent) {
+                    window.parent.postMessage({ type: 'navigate', url: url }, '*');
+                } else {
+                    window.location.href = url;
+                }
+            }
+        });
+
+        // Load and display recent sites
+        try {
+            const visitedUrls = JSON.parse(sessionStorage.getItem('visitedUrls')) || [];
+            const recentHtml = visitedUrls.slice(-6).reverse().map(url => 
+                `<a href="${url}" class="history-item">${new URL(url).hostname}</a>`
+            ).join('');
+            recentSites.innerHTML = recentHtml;
+        } catch (e) {
+            console.log('Error loading history:', e);
+        }
+    </script>
+</body>
+</html>
